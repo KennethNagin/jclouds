@@ -10,7 +10,7 @@
     "metadata" : {
         "cdmi_size" : "83"
     },
-    "childrenrange" : "0-0",
+    "childrenrange" : "0-1",
     "children" : [
         "MyDataObject.txt"
     ]

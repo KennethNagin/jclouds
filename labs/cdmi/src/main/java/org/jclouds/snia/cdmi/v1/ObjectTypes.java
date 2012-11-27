@@ -26,4 +26,5 @@ public interface ObjectTypes {
 
    public static final String CONTAINER = "application/cdmi-container";
    public static final String DATAOBJECT = "application/cdmi-object";
+   public static final String CAPABILITY = "application/cdmi-capability";
 }

@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 
 import org.jclouds.domain.JsonBall;
 import org.jclouds.snia.cdmi.v1.ObjectTypes;
+import org.jclouds.snia.cdmi.v1.domain.CDMIObjectCapability;
 import org.jclouds.snia.cdmi.v1.domain.Container;
 import org.jclouds.snia.cdmi.v1.internal.BaseCDMIApiLiveTest;
 import org.jclouds.snia.cdmi.v1.options.CreateContainerOptions;
@@ -65,6 +66,7 @@ public class ContainerApiLiveTest extends BaseCDMIApiLiveTest {
       assertNotNull(container);
       try {
          logger.info(container.toString());
+         logger.info("exists: "+api.containerExists(pContainerName));
          assertEquals(container.getObjectType(), ObjectTypes.CONTAINER);
          assertNotNull(container.getObjectID());
          assertNotNull(container.getObjectName());
@@ -89,6 +91,7 @@ public class ContainerApiLiveTest extends BaseCDMIApiLiveTest {
          assertNotNull(container);
          logger.info("root container: " + container);
          assertEquals(container.getChildren().contains(pContainerName), true);
+         logger.info("exists: "+api.containerExists(pContainerName));
 
       } finally {
          logger.info("deleteContainer: " + pContainerName);
@@ -100,6 +103,7 @@ public class ContainerApiLiveTest extends BaseCDMIApiLiveTest {
          container = api.get("/");
          logger.info("root container: " + container.toString());
          assertEquals(container.getChildren().contains(pContainerName), false);
+         //logger.info("exists: "+api.containerExists(pContainerName));
       }
 
    }
@@ -238,5 +242,18 @@ public class ContainerApiLiveTest extends BaseCDMIApiLiveTest {
          logger.info("root container: " + container);
          assertEquals(container.getChildren().contains(pContainerName), false);
       }
+   }
+   @Test
+   public void testGetContainerCapabilities() throws Exception {
+      ContainerApi api = cdmiContext.getApi().getApi();
+      logger.info("get provider capabilites ");
+      try {
+      	CDMIObjectCapability cdmiObjectCapability = api.getCapabilites();
+      	assertNotNull(cdmiObjectCapability);
+      	logger.info("CDMIObjectCapability: "+cdmiObjectCapability);
+      } catch (Exception e) {
+      	logger.info("CDMIObjectCapability: "+e.getMessage());
+      	assertEquals(true,false);      	
+      } 
    }
 }

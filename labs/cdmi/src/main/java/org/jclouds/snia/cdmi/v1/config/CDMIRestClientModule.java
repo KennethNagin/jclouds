@@ -23,15 +23,12 @@ import java.util.Map;
 import javax.inject.Singleton;
 import javax.inject.Named;
 
-import org.jclouds.crypto.Crypto;
 import org.jclouds.http.HttpErrorHandler;
 import org.jclouds.http.HttpRequestFilter;
 import org.jclouds.http.annotation.ClientError;
 import org.jclouds.http.annotation.Redirection;
 import org.jclouds.http.annotation.ServerError;
 import org.jclouds.rest.ConfiguresRestClient;
-import org.jclouds.rest.annotations.Credential;
-import org.jclouds.rest.annotations.Identity;
 import org.jclouds.rest.config.RestClientModule;
 import org.jclouds.snia.cdmi.v1.CDMIApi;
 import org.jclouds.snia.cdmi.v1.CDMIAsyncApi;
@@ -53,6 +50,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Provides;
+import com.google.inject.Scopes;
 import com.google.inject.name.Names;
 
 /**

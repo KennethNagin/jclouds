@@ -21,12 +21,14 @@ package org.jclouds.snia.cdmi.v1.features;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HEAD;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.jclouds.blobstore.functions.ReturnFalseOnContainerNotFound;
 import org.jclouds.rest.annotations.BinderParam;
 import org.jclouds.rest.annotations.ExceptionParser;
 import org.jclouds.rest.annotations.Headers;
@@ -35,6 +37,7 @@ import org.jclouds.rest.annotations.SkipEncoding;
 import org.jclouds.rest.functions.ReturnNullOnNotFoundOr404;
 import org.jclouds.snia.cdmi.v1.ObjectTypes;
 import org.jclouds.snia.cdmi.v1.binders.BindQueryParmsToSuffix;
+import org.jclouds.snia.cdmi.v1.domain.CDMIObjectCapability;
 import org.jclouds.snia.cdmi.v1.domain.Container;
 import org.jclouds.snia.cdmi.v1.filters.AuthenticationFilterSwitch;
 import org.jclouds.snia.cdmi.v1.filters.StripExtraAcceptHeader;
@@ -157,5 +160,30 @@ public interface ContainerAsyncApi {
    @ExceptionParser(ReturnNullOnNotFoundOr404.class)
    @Path("/{containerName}")
    ListenableFuture<Void> delete(@PathParam("containerName") String containerName);
+
+   /**
+    * Check whether Container exists
+    * 
+    * @param containerName
+    * @return Boolean
+    */   
+   @GET
+   @Consumes({ ObjectTypes.CONTAINER, MediaType.APPLICATION_JSON })
+   @Path("/{container}")
+   @ExceptionParser(ReturnFalseOnContainerNotFound.class)
+   ListenableFuture<Boolean> containerExists(@PathParam("container") String container);
+   
+   /**
+    * Get CDMI Capabilities
+    * 
+    * @return CDMIObjectCapability
+    */
+   @GET
+   @Consumes({ ObjectTypes.CAPABILITY, MediaType.APPLICATION_JSON })
+   @Path("/cdmi_capabilities/")
+   @ExceptionParser(ReturnFalseOnContainerNotFound.class)
+   ListenableFuture<CDMIObjectCapability> getCapabilites();
+
+
 
 }

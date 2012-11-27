@@ -315,13 +315,15 @@ public class DataNonCDMIContentTypeApiLiveTest extends BaseCDMIApiLiveTest {
    private void validateDataObjectPayload(String dataObjectNameIn, File fileIn) throws IOException {
       Payload payloadOut = dataNonCDMIContentTypeApi.getPayload(containerName + dataObjectNameIn);
       assertNotNull(payloadOut);
-      File fileOut = new File(Files.createTempDir(), "temp.txt");
+      File tempDir = Files.createTempDir();
+      File fileOut = new File(Files.createTempDir(), fileIn.getName());
       FileOutputStream fos = new FileOutputStream(fileOut);
       ByteStreams.copy(payloadOut.getInput(), fos);
       fos.flush();
       fos.close();
       assertEquals(Files.equal(fileOut, fileIn), true);
       fileOut.delete();
+      tempDir.delete();
 
    }
 

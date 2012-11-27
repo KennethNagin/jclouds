@@ -21,6 +21,7 @@ package org.jclouds.snia.cdmi.v1.features;
 import java.util.concurrent.TimeUnit;
 
 import org.jclouds.concurrent.Timeout;
+import org.jclouds.snia.cdmi.v1.domain.CDMIObjectCapability;
 import org.jclouds.snia.cdmi.v1.domain.Container;
 import org.jclouds.snia.cdmi.v1.options.CreateContainerOptions;
 import org.jclouds.snia.cdmi.v1.queryparams.ContainerQueryParams;
@@ -113,5 +114,17 @@ public interface ContainerApi {
     * @param containerName
     */
    void delete(String containerName);
+   
+   boolean containerExists(String containerName);
+   
+   /**
+    * Delete CDMI Container
+    * 
+    * @return CDMIObjectCapability
+    */
+
+   CDMIObjectCapability getCapabilites();
+   
+   
 
 }

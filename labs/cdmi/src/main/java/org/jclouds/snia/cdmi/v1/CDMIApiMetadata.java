@@ -22,8 +22,10 @@ import java.net.URI;
 import java.util.Properties;
 
 import org.jclouds.apis.ApiMetadata;
+import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.rest.RestContext;
 import org.jclouds.rest.internal.BaseRestApiMetadata;
+import org.jclouds.snia.cdmi.v1.blobstore.config.CdmiBlobStoreContextModule;
 import org.jclouds.snia.cdmi.v1.config.CDMIRestClientModule;
 
 import com.google.common.collect.ImmutableSet;
@@ -69,7 +71,13 @@ public class CDMIApiMetadata extends BaseRestApiMetadata {
          id("cdmi").name("SNIA CDMI API").identityName("tenantId:user").credentialName("password")
                   .documentation(URI.create("http://www.snia.org/cdmi")).version("1.0.1")
                   .defaultEndpoint("http://localhost:8080").defaultProperties(CDMIApiMetadata.defaultProperties())
-                  .defaultModules(ImmutableSet.<Class<? extends Module>> of(CDMIRestClientModule.class));
+                  .view(TypeToken.of(BlobStoreContext.class))
+//                  .defaultModules(ImmutableSet.<Class<? extends Module>> of(CDMIRestClientModule.class));
+                  .defaultModules(ImmutableSet.<Class<? extends Module>>builder()
+                  			.add(CDMIRestClientModule.class)
+                  			.add(CdmiBlobStoreContextModule.class)
+                  			.build());
+                  
       }
 
       @Override

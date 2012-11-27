@@ -39,7 +39,7 @@ import com.google.common.collect.Maps;
  * 
  * @author Kenneth Nagin
  */
-public class CDMIObject {
+public class CDMIObjectCapability {
 
    public static Builder<?> builder() {
       return new ConcreteBuilder();
@@ -58,19 +58,19 @@ public class CDMIObject {
       private String objectName;
       private String parentURI;
       private String parentID;
-      private String domainURI;
-      private String capabilitiesURI;
       private String completionStatus;
 
-      private Map<String, JsonBall> metadata = Maps.newHashMap();
-
+      private Map<String, JsonBall> capabilities = Maps.newHashMap();
+      
       /**
        * @see DataObject#getMetadata()
        */
-      public B metadata(Map<String, JsonBall> metadata) {
-         this.metadata = ImmutableMap.copyOf(checkNotNull(metadata, "metadata"));
+      public B capabilities(Map<String, JsonBall> capabilities) {
+         this.capabilities = ImmutableMap.copyOf(checkNotNull(capabilities, "capabilities"));
          return self();
       }
+
+
 
       @SuppressWarnings("unchecked")
       protected B self() {
@@ -78,7 +78,7 @@ public class CDMIObject {
       }
 
       /**
-       * @see CDMIObject#getObjectID()
+       * @see CDMIObjectCapability#getObjectID()
        */
       public B objectID(String objectID) {
          this.objectID = objectID;
@@ -86,7 +86,7 @@ public class CDMIObject {
       }
 
       /**
-       * @see CDMIObject#getObjectType()
+       * @see CDMIObjectCapability#getObjectType()
        */
       public B objectType(String objectType) {
          this.objectType = objectType;
@@ -94,7 +94,7 @@ public class CDMIObject {
       }
 
       /**
-       * @see CDMIObject#getObjectName()
+       * @see CDMIObjectCapability#getObjectName()
        */
       public B objectName(String objectName) {
          this.objectName = objectName;
@@ -102,7 +102,7 @@ public class CDMIObject {
       }
 
       /**
-       * @see CDMIObject#getParentURI()
+       * @see CDMIObjectCapability#getParentURI()
        */
       public B parentURI(String parentURI) {
          this.parentURI = parentURI;
@@ -110,44 +110,29 @@ public class CDMIObject {
       }
       
       /**
-       * @see CDMIObject#getParentID()
+       * @see CDMIObjectCapability#getParentID()
        */
       public B parentID(String parentID) {
          this.parentID = parentID;
          return self();
       }
 
+     
       /**
-       * @see CDMIObject#getDomainURI()
-       */
-      public B domainURI(String domainURI) {
-         this.domainURI = domainURI;
-         return self();
-      }
-  
-      /**
-       * @see CDMIObject#getCapabilitiesURI()
-       */
-      public B capabilitiesURI(String capabilitiesURI) {
-         this.capabilitiesURI = capabilitiesURI;
-         return self();
-      }
-      
-      /**
-       * @see CDMIObject#getCompletionStatus()
+       * @see CDMIObjectCapability#getCompletionStatus()
        */
       public B completionStatus(String completionStatus) {
          this.completionStatus = completionStatus;
          return self();
       }
 
-      public CDMIObject build() {
-         return new CDMIObject(this);
+      public CDMIObjectCapability build() {
+         return new CDMIObjectCapability(this);
       }
 
-      protected B fromCDMIObject(CDMIObject in) {
+      protected B fromCDMIObject(CDMIObjectCapability in) {
          return objectID(in.getObjectID()).objectType(in.getObjectType()).objectName(in.getObjectName())
-                  .parentURI(in.getParentURI()).metadata(in.getMetadata()).parentID(in.getParentID()).domainURI(in.getDomainURI()).capabilitiesURI(in.getCapabilitiesURI()).completionStatus(in.getCompletionStatus());
+                  .parentURI(in.getParentURI()).capabilities(in.getCapabilities()).parentID(in.getParentID()).completionStatus(in.getCompletionStatus());
       }
    }
 
@@ -158,26 +143,20 @@ public class CDMIObject {
    private String parentURI;
 
 	private String parentID;
-   private String domainURI;
-   private String capabilitiesURI;
    private String completionStatus;
 
-   private final Map<String, JsonBall> metadata;
-   private Map<String, String> userMetaDataIn;
-   private Map<String, String> systemMetaDataIn;
-   private List<Map<String, String>> aclMetaDataIn;
+   private final Map<String, JsonBall> capabilities;
+   private Map<String, String> storageSystemCapabilities;
+   private Map<String, String> cdmiGenericCapabilities;
 
-   protected CDMIObject(Builder<?> builder) {
+   protected CDMIObjectCapability(Builder<?> builder) {
       this.objectID = checkNotNull(builder.objectID, "objectID");
       this.objectType = checkNotNull(builder.objectType, "objectType");
       this.objectName = builder.objectName;
       this.parentURI = checkNotNull(builder.parentURI, "parentURI");
       this.parentID = checkNotNull(builder.parentID, "parentID");
-      //this.parentID = builder.parentID;
-      this.domainURI = checkNotNull(builder.domainURI, "domainURI");
-      this.capabilitiesURI = checkNotNull(builder.capabilitiesURI, "capabilitiesURI");
       this.completionStatus = checkNotNull(builder.completionStatus, "completionStatus");
-      this.metadata = ImmutableMap.copyOf(checkNotNull(builder.metadata, "metadata"));
+      this.capabilities = ImmutableMap.copyOf(checkNotNull(builder.capabilities, "metadata"));
    }
 
    /**
@@ -229,20 +208,6 @@ public class CDMIObject {
    }
 
 	/**
-    * @return the domainURI
-    */
-   public String getDomainURI() {
-   	return domainURI;
-   }
-
-	/**
-    * @return the capabilitiesURI
-    */
-   public String getCapabilitiesURI() {
-   	return capabilitiesURI;
-   }
-
-	/**
     * @return the completionStatus
     */
    public String getCompletionStatus() {
@@ -254,78 +219,50 @@ public class CDMIObject {
     * Metadata for the CDMI object. This field includes any user and system metadata specified in the request body
     * metadata field, along with storage system metadata generated by the cloud storage system.
     */
-   public Map<String, JsonBall> getMetadata() {
-      return metadata;
+   public Map<String, JsonBall> getCapabilities() {
+      return capabilities;
    }
 
    /**
-    * Parse Metadata for the container object from the original JsonBall. System metadata data is prefixed with cdmi.
+    * Parse Capabilities for the container object from the original JsonBall. System metadata data is prefixed with cdmi.
     * System ACL metadata data is prefixed with cdmi_acl
     * 
     */
-   private void parseMetadata() {
-      userMetaDataIn = Maps.newHashMap();
-      systemMetaDataIn = Maps.newHashMap();
-      aclMetaDataIn = Lists.newArrayList();
-      Iterator<String> keys = metadata.keySet().iterator();
+   private void parseCapability() {
+      storageSystemCapabilities = Maps.newHashMap();
+      cdmiGenericCapabilities = Maps.newHashMap();
+      Iterator<String> keys = capabilities.keySet().iterator();
       while (keys.hasNext()) {
          String key = keys.next();
-         JsonBall value = metadata.get(key);
+         JsonBall value = capabilities.get(key);
          if (key.startsWith("cdmi")) {
-            if (key.matches("cdmi_acl")) {
-               String[] cdmi_acl_array = value.toString().split("[{}]");
-               for (int i = 0; i < cdmi_acl_array.length; i++) {
-                  if (!(cdmi_acl_array[i].startsWith("[") || cdmi_acl_array[i].startsWith("]") || cdmi_acl_array[i]
-                           .startsWith(","))) {
-                     Map<String, String> aclMap = Maps.newHashMap();
-                     String[] cdmi_acl_member = cdmi_acl_array[i].split(",");
-                     for (String s : cdmi_acl_member) {
-                        String cdmi_acl_key = s.substring(0, s.indexOf(":"));
-                        String cdmi_acl_value = s.substring(s.indexOf(":") + 1);
-                        cdmi_acl_value.replace('"', ' ').trim();
-                        aclMap.put(cdmi_acl_key, cdmi_acl_value);
-                     }
-                     aclMetaDataIn.add(aclMap);
-                  }
-               }
-            } else {
-               systemMetaDataIn.put(key, value.toString().replace('"', ' ').trim());
-            }
+            cdmiGenericCapabilities.put(key, value.toString().replace('"', ' ').trim());
          } else {
-            userMetaDataIn.put(key, value.toString().replace('"', ' ').trim());
+            storageSystemCapabilities.put(key, value.toString().replace('"', ' ').trim());
          }
       }
    }
 
    /**
-    * Get User Metadata for the container object. This field includes any user metadata
+    * Get storageSystemCapabilities for the container object. 
     */
-   public Map<String, String> getUserMetadata() {
-      if (userMetaDataIn == null) {
-         parseMetadata();
+   public Map<String, String> getStorageSystemCapabilities() {
+      if (storageSystemCapabilities == null) {
+         parseCapability();
       }
-      return userMetaDataIn;
+      return storageSystemCapabilities;
    }
 
    /**
-    * Get System Metadata for the container object excluding ACL related metadata
+    * Get cdmiGenericCapabilities for the container object 
     */
-   public Map<String, String> getSystemMetadata() {
-      if (systemMetaDataIn == null) {
-         parseMetadata();
+   public Map<String, String> getCdmiGenericCapabilities() {
+      if (cdmiGenericCapabilities == null) {
+         parseCapability();
       }
-      return systemMetaDataIn;
+      return cdmiGenericCapabilities;
    }
 
-   /**
-    * Get System Metadata for the container object excluding ACL related metadata
-    */
-   public List<Map<String, String>> getACLMetadata() {
-      if (aclMetaDataIn == null) {
-         parseMetadata();
-      }
-      return aclMetaDataIn;
-   }
 
    @Override
    public boolean equals(Object o) {
@@ -333,12 +270,11 @@ public class CDMIObject {
          return true;
       if (o == null || getClass() != o.getClass())
          return false;
-      CDMIObject that = CDMIObject.class.cast(o);
+      CDMIObjectCapability that = CDMIObjectCapability.class.cast(o);
       return equal(this.objectID, that.objectID) && equal(this.objectName, that.objectName)
                && equal(this.objectType, that.objectType) && equal(this.parentURI, that.parentURI)
-               && equal(this.parentID, that.parentID) && equal(this.domainURI,that.domainURI)
-               && equal(this.capabilitiesURI, that.capabilitiesURI) && equal(this.completionStatus, that.completionStatus)
-               && equal(this.metadata, that.metadata);
+               && equal(this.parentID, that.parentID) && equal(this.completionStatus, that.completionStatus)
+               && equal(this.capabilities, that.capabilities);
    }
 
    public boolean clone(Object o) {
@@ -346,13 +282,13 @@ public class CDMIObject {
          return false;
       if (o == null || getClass() != o.getClass())
          return false;
-      CDMIObject that = CDMIObject.class.cast(o);
+      CDMIObjectCapability that = CDMIObjectCapability.class.cast(o);
       return equal(this.objectType, that.objectType);
    }
 
    @Override
    public int hashCode() {
-      return Objects.hashCode(objectID, objectName, objectType, parentURI, parentID, domainURI, capabilitiesURI, completionStatus, metadata);
+      return Objects.hashCode(objectID, objectName, objectType, parentURI, parentID, completionStatus, capabilities);
    }
 
    @Override
@@ -362,6 +298,6 @@ public class CDMIObject {
 
    protected ToStringHelper string() {
       return Objects.toStringHelper("").add("objectID", objectID).add("objectName", objectName)
-               .add("objectType", objectType).add("parentURI", parentURI).add("parentID", parentID).add("domainURI", domainURI).add("capabilitiesURI", capabilitiesURI).add("completionStatus", completionStatus).add("metadata", metadata);
+               .add("objectType", objectType).add("parentURI", parentURI).add("parentID", parentID).add("completionStatus", completionStatus).add("capabilities", capabilities);
    }
 }
