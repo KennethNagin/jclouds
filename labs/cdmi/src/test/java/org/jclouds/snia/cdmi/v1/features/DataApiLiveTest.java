@@ -26,13 +26,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.jclouds.io.Payload;
+import org.jclouds.io.Payloads;
+import org.jclouds.io.payloads.BaseMutableContentMetadata;
+import org.jclouds.io.payloads.BasePayload;
+import org.jclouds.io.payloads.MultipartForm;
+import org.jclouds.io.payloads.Part;
+import org.jclouds.io.payloads.StringPayload;
 import org.jclouds.snia.cdmi.v1.domain.Container;
 import org.jclouds.snia.cdmi.v1.domain.DataObject;
+import org.jclouds.snia.cdmi.v1.functions.MultipartMimeParts;
+import org.jclouds.snia.cdmi.v1.functions.MultipartMimePayloadIn;
 import org.jclouds.snia.cdmi.v1.internal.BaseCDMIApiLiveTest;
 import org.jclouds.snia.cdmi.v1.options.CreateDataObjectOptions;
 import org.jclouds.snia.cdmi.v1.queryparams.DataObjectQueryParams;
@@ -40,8 +51,10 @@ import org.testng.annotations.Test;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
+import com.google.common.net.MediaType;
 
 /**
  * Example setup: -Dtest.cdmi.identity=admin:Admin?authType=openstackKeystone -Dtest.cdmi.credential=passw0rd
@@ -49,10 +62,12 @@ import com.google.common.io.Files;
  * 
  * @author Kenneth Nagin
  */
+
 @Test(groups = "live", testName = "DataApiLiveTest")
 public class DataApiLiveTest extends BaseCDMIApiLiveTest {  
    ContainerApi containerApi;
    DataApi dataApi;
+   DataNonCDMIContentTypeApi dataNonCDMIContentTypeApi; 
    String containerName;
    String dataObjectNameIn;
    String serverType;
@@ -63,6 +78,7 @@ public class DataApiLiveTest extends BaseCDMIApiLiveTest {
           .put("three", "3")
           .build();
    static final Logger logger = Logger.getAnonymousLogger();
+/*   
    @Test
    public void testCreateDataObjects() throws Exception {
       containerName = "MyContainer" + System.currentTimeMillis() + "/";
@@ -281,7 +297,8 @@ public class DataApiLiveTest extends BaseCDMIApiLiveTest {
       }
 
    }
-
+*/   
+/*
    @Test
    public void testGetDataObjects() throws Exception {
       String serverType = System.getProperty("test.cdmi.serverType", "openstack");
@@ -433,6 +450,69 @@ public class DataApiLiveTest extends BaseCDMIApiLiveTest {
       }
 
    }
+   */
+   @Test
+   public void testMultipartMime() throws Exception {
+      String serverType = System.getProperty("test.cdmi.serverType", "openstack");
+      containerName = "NaginTestContainer" + System.currentTimeMillis() + "/";
+      //containerName = "NaginTestContainer"+ "/";
+      dataObjectNameIn = "dataobject08121.txt";
+      File tmpFileIn = new File("temp.txt");
+      String value;
+      if (!tmpFileIn.exists()) {
+         Files.touch(tmpFileIn);
+      }
+      CreateDataObjectOptions pCreateDataObjectOptions;
+      DataObject dataObject;
+      Iterator<String> keys;
+      Map<String, String> dataObjectMetaDataOut;
+      containerApi = cdmiContext.getApi().getApi();
+      dataApi = cdmiContext.getApi().getDataApiForContainer(containerName);
+      dataNonCDMIContentTypeApi = cdmiContext.getApi().getDataNonCDMIContentTypeApiForContainer(containerName);
+      logger.info("running tests on serverType: " + serverType);
+      logger.info("createContainer: " + containerName);
+      Container container = containerApi.create(containerName);
+      try {
+         assertNotNull(container);
+         value = "Hello CDMI World 10";
+         Files.write(value, tmpFileIn, Charsets.UTF_8);
+         MultipartMimeParts parts = new MultipartMimeParts(dataObjectMetaDataIn,Payloads.newPayload(tmpFileIn),"text/plain");
+         parts = new MultipartMimeParts(dataObjectMetaDataIn,Payloads.newPayload(value),"text/plain");
+         //Payload payloadIn = new StringPayload(value);
+         //payloadIn.setContentMetadata(BaseMutableContentMetadata.fromContentMetadata(payloadIn.getContentMetadata()
+         //         .toBuilder().contentType(MediaType.PLAIN_TEXT_UTF_8.toString()).build()));
+         //parts = new MultipartMimeParts(dataObjectMetaDataIn,payloadIn,"text/plain");
+         //dataObject = dataApi.multipartMime(containerName + dataObjectNameIn, "300", parts);
+         dataObject = dataApi.create(containerName + dataObjectNameIn,  new MultipartMimePayloadIn(parts));
+         System.out.println("before get dataObject: "+dataObject);
+         dataApi.getMultipartMime(containerName + dataObjectNameIn);
+         validateDataObject(dataObject, tmpFileIn.length(), null);
+         dataObject = dataApi.get(containerName + dataObjectNameIn);
+         /*
+         System.out.println("after get dataObject: "+dataObject);
+         validateDataObject(dataObject, tmpFileIn.length(), "text/plain");
+         System.out.println("dataObject: "+dataObject.getValueAsString());
+         */
+         //validateDataObjectPayload(containerName + dataObjectNameIn,tmpFileIn);
+         /*
+         File fileIn = new File(System.getProperty("user.dir") + "/src/test/resources/yellow-flowers.jpg");
+         parts = new MultipartMimeParts(dataObjectMetaDataIn,Payloads.newPayload(fileIn),MediaType.JPEG.toString());
+         dataObject = dataApi.multipartMime(containerName + fileIn.getName(), "13627", parts);
+         System.out.println("before get dataObject: "+dataObject);
+         System.out.println("before getMultipartMime: "+containerName + fileIn.getName());
+         dataApi.getMultipartMime(containerName + fileIn.getName());
+         */
+      } finally {
+         tmpFileIn.delete();
+         for (String containerChild : containerApi.get(containerName).getChildren()) {
+            logger.info("deleting: " + containerChild);
+            dataApi.delete(containerName + containerChild);
+         }
+         containerApi.delete(containerName);
+
+      }
+   }
+
 
    private void validateDataObject(DataObject dataObject, String value, String mimetype) {
       validateDataObject(dataObject,value,value.length(),mimetype);
@@ -463,6 +543,22 @@ public class DataApiLiveTest extends BaseCDMIApiLiveTest {
       logger.info("parentURI: " + dataObject.getParentURI());
       assertEquals(containerApi.get(containerName).getChildren().contains(dataObjectNameIn), true);
    }
+   
+   private void validateDataObjectPayload(String dataObjectNameIn, File fileIn) throws IOException {
+      Payload payloadOut = dataNonCDMIContentTypeApi.getPayload(containerName + dataObjectNameIn);
+      assertNotNull(payloadOut);
+      File tempDir = Files.createTempDir();
+      File fileOut = new File(Files.createTempDir(), fileIn.getName());
+      FileOutputStream fos = new FileOutputStream(fileOut);
+      ByteStreams.copy(payloadOut.getInput(), fos);
+      fos.flush();
+      fos.close();
+      assertEquals(Files.equal(fileOut, fileIn), true);
+      fileOut.delete();
+      tempDir.delete();
+
+   }
+
 
 
 }

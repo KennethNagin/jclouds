@@ -20,10 +20,20 @@ package org.jclouds.snia.cdmi.v1.features;
 
 import java.util.concurrent.TimeUnit;
 
+import javax.ws.rs.PathParam;
+
 import org.jclouds.concurrent.Timeout;
+import org.jclouds.io.Payload;
+import org.jclouds.io.payloads.BasePayload;
+import org.jclouds.rest.annotations.BinderParam;
+import org.jclouds.snia.cdmi.v1.binders.BindMultipartMime;
 import org.jclouds.snia.cdmi.v1.domain.DataObject;
+import org.jclouds.snia.cdmi.v1.functions.MultipartMimeParts;
+import org.jclouds.snia.cdmi.v1.functions.MultipartMimePayloadIn;
 import org.jclouds.snia.cdmi.v1.options.CreateDataObjectOptions;
 import org.jclouds.snia.cdmi.v1.queryparams.DataObjectQueryParams;
+
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Data Object Resource Operations
@@ -98,6 +108,10 @@ public interface DataApi {
     *         <pre>
     */
    DataObject create(String dataObjectName, CreateDataObjectOptions... options);
+   
+   DataObject create(String dataObjectName, MultipartMimePayloadIn payload);
+   BasePayload getMultipartMime(String dataObjectName);
+ 
 
    /**
     * delete CDMI Data object

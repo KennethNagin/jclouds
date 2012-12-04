@@ -20,24 +20,37 @@ package org.jclouds.snia.cdmi.v1.features;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.Encoded;
 
+
+import org.jclouds.io.Payload;
+import org.jclouds.io.payloads.BasePayload;
 import org.jclouds.rest.annotations.BinderParam;
 import org.jclouds.rest.annotations.ExceptionParser;
 import org.jclouds.rest.annotations.Headers;
+import org.jclouds.rest.annotations.PayloadParam;
 import org.jclouds.rest.annotations.RequestFilters;
+import org.jclouds.rest.annotations.ResponseParser;
 import org.jclouds.rest.annotations.SkipEncoding;
 import org.jclouds.rest.functions.ReturnNullOnNotFoundOr404;
 import org.jclouds.snia.cdmi.v1.ObjectTypes;
 import org.jclouds.snia.cdmi.v1.binders.BindQueryParmsToSuffix;
+import org.jclouds.snia.cdmi.v1.binders.BindMultipartMime;
 import org.jclouds.snia.cdmi.v1.domain.DataObject;
 import org.jclouds.snia.cdmi.v1.filters.AuthenticationFilterSwitch;
 import org.jclouds.snia.cdmi.v1.filters.StripExtraAcceptHeader;
+import org.jclouds.snia.cdmi.v1.functions.MultipartMimeParts;
+import org.jclouds.snia.cdmi.v1.functions.MultipartMimePayloadIn;
+import org.jclouds.snia.cdmi.v1.functions.ParseObjectFromHeadersAndHttpContent;
 import org.jclouds.snia.cdmi.v1.options.CreateDataObjectOptions;
 import org.jclouds.snia.cdmi.v1.queryparams.DataObjectQueryParams;
 
@@ -83,6 +96,24 @@ public interface DataAsyncApi {
    @Path("/{dataObjectName}")
    ListenableFuture<DataObject> create(@PathParam("dataObjectName") String dataObjectName,
             CreateDataObjectOptions... options);
+   
+ 
+   @PUT
+   @Consumes({ ObjectTypes.DATAOBJECT, MediaType.APPLICATION_JSON })
+   @Produces({ MultipartMimeParts.MULTIPARTMIXED })
+   @ExceptionParser(ReturnNullOnNotFoundOr404.class)
+   @Path("/{dataObjectName}")
+   ListenableFuture<DataObject> create(@PathParam("dataObjectName") String dataObjectName, MultipartMimePayloadIn payload);
+  
+   
+   @GET
+   @Consumes("multipart/mixed")
+   @ResponseParser(ParseObjectFromHeadersAndHttpContent.class)
+   @ExceptionParser(ReturnNullOnNotFoundOr404.class)
+   @Path("/{dataObjectName}")
+   ListenableFuture<BasePayload> getMultipartMime(@PathParam("dataObjectName") String dataObjectName);
+ 
+
 
    /**
     * @see DataApi#delete(String dataObjectName)

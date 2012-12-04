@@ -173,7 +173,6 @@ public class CDMIObject {
       this.objectName = builder.objectName;
       this.parentURI = checkNotNull(builder.parentURI, "parentURI");
       this.parentID = checkNotNull(builder.parentID, "parentID");
-      //this.parentID = builder.parentID;
       this.domainURI = checkNotNull(builder.domainURI, "domainURI");
       this.capabilitiesURI = checkNotNull(builder.capabilitiesURI, "capabilitiesURI");
       this.completionStatus = checkNotNull(builder.completionStatus, "completionStatus");
