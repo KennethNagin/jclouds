@@ -42,6 +42,7 @@ import org.jclouds.snia.cdmi.v1.domain.DataObject;
 import org.jclouds.snia.cdmi.v1.filters.AuthenticationFilterSwitch;
 import org.jclouds.snia.cdmi.v1.filters.StripExtraAcceptHeader;
 import org.jclouds.snia.cdmi.v1.functions.ParseObjectFromHeadersAndHttpContent;
+import org.jclouds.snia.cdmi.v1.functions.ParseETagHeader;
 import org.jclouds.snia.cdmi.v1.queryparams.DataObjectQueryParams;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -120,8 +121,9 @@ public interface DataNonCDMIContentTypeAsyncApi {
    @PUT
    @Consumes(MediaType.MEDIA_TYPE_WILDCARD)
    @ExceptionParser(ReturnNullOnNotFoundOr404.class)
+   @ResponseParser(ParseETagHeader.class)
    @Path("/{dataObjectName}")
-   ListenableFuture<Void> create(@PathParam("dataObjectName") String dataObjectName, org.jclouds.io.Payload payload);
+   ListenableFuture<String> create(@PathParam("dataObjectName") String dataObjectName, org.jclouds.io.Payload payload);
 
    /**
     * @see DataNonCDMIContentTypeApi#createPartial(String dataObjectName, org.jclouds.io.Payload payload )

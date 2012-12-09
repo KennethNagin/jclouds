@@ -34,7 +34,9 @@ import org.jclouds.rest.annotations.ExceptionParser;
 import org.jclouds.rest.annotations.Headers;
 import org.jclouds.rest.annotations.RequestFilters;
 import org.jclouds.rest.annotations.SkipEncoding;
+import org.jclouds.rest.annotations.ResponseParser;
 import org.jclouds.rest.functions.ReturnNullOnNotFoundOr404;
+import org.jclouds.rest.functions.ReturnFalseOnNotFoundOr404;
 import org.jclouds.snia.cdmi.v1.ObjectTypes;
 import org.jclouds.snia.cdmi.v1.binders.BindQueryParmsToSuffix;
 import org.jclouds.snia.cdmi.v1.domain.CDMIObjectCapability;
@@ -45,6 +47,7 @@ import org.jclouds.snia.cdmi.v1.options.CreateContainerOptions;
 import org.jclouds.snia.cdmi.v1.queryparams.ContainerQueryParams;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import org.jclouds.snia.cdmi.v1.functions.ParseContainerForDataObject;
 
 /**
  * CDMI Container Object Resource Operations
@@ -125,6 +128,14 @@ public interface ContainerAsyncApi {
    @ExceptionParser(ReturnNullOnNotFoundOr404.class)
    @Path("/{containerName}")
    ListenableFuture<Container> create(@PathParam("containerName") String containerName);
+   
+   @PUT
+   @Consumes({ ObjectTypes.CONTAINER, MediaType.APPLICATION_JSON })
+   @Produces({ ObjectTypes.CONTAINER })
+   @ExceptionParser(ReturnFalseOnContainerNotFound.class)
+   @Path("/{containerName}")
+   ListenableFuture<Boolean> make(@PathParam("containerName") String containerName);
+
 
    /**
     * Create CDMI Container
@@ -170,8 +181,22 @@ public interface ContainerAsyncApi {
    @GET
    @Consumes({ ObjectTypes.CONTAINER, MediaType.APPLICATION_JSON })
    @Path("/{container}")
-   @ExceptionParser(ReturnFalseOnContainerNotFound.class)
+   @ExceptionParser(ReturnFalseOnNotFoundOr404.class)
    ListenableFuture<Boolean> containerExists(@PathParam("container") String container);
+   
+   /**
+    * Check whether Container exists
+    * 
+    * @param containerName
+    * @return Boolean
+    */   
+   @GET
+   @Consumes({ ObjectTypes.CONTAINER, MediaType.APPLICATION_JSON })
+   @Path("/{container}")
+   @ResponseParser(ParseContainerForDataObject.class)
+   @ExceptionParser(ReturnFalseOnNotFoundOr404.class)
+   ListenableFuture<Boolean> objectExists(@PathParam("container") String container, String object );
+
    
    /**
     * Get CDMI Capabilities

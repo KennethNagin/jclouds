@@ -32,6 +32,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import org.jclouds.ContextBuilder;
+import org.jclouds.blobstore.AsyncBlobStore;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.domain.Blob;
@@ -57,6 +58,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.google.common.net.MediaType;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Example Setup: -Dtest.cdmi.identity=admin:Admin?authType=openstackKeystone -Dtest.cdmi.credential=passw0rd
@@ -76,7 +78,7 @@ public class BlobStoreApiLiveTest extends BaseCDMIApiLiveTest {
    static final Logger logger = Logger.getAnonymousLogger();
 
    @Test
-   public void testCreateContainer() throws Exception {
+   public void testSyncBlobStore() throws Exception {
       String containerName = "MyContainer" + System.currentTimeMillis() + "/";
       Iterator<String> keys;
       Properties overrides = super.setupProperties();
@@ -85,116 +87,139 @@ public class BlobStoreApiLiveTest extends BaseCDMIApiLiveTest {
       System.out.println(overrides);
       BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).credentials(identity, credential).overrides(overrides).buildView(BlobStoreContext.class);
       BlobStore blobStore = blobStoreContext.getBlobStore();
+      Blob blob;
       assertEquals(blobStore.containerExists(containerName),false);
       long rootBlobCount = blobStore.countBlobs("/");
       logger.info("create: " + containerName);
+      assertEquals(blobStore.list().size(),rootBlobCount);
       assertEquals(blobStore.createContainerInLocation(null,containerName),true);
-      assertEquals(blobStore.containerExists(containerName),true);
-      assertEquals(blobStore.countBlobs("/"),++rootBlobCount);      
-      for(StorageMetadata md: blobStore.list() ) {
-      	System.out.println("md: "+md);      	
-      }
-      File inFile = new File(System.getProperty("user.dir") + "/src/test/resources/yellow-flowers.jpg");
-      assertEquals(true, inFile.isFile());
-      assertEquals(blobStore.blobExists(containerName, inFile.getName()),false);
-      assertEquals(blobStore.countBlobs(containerName),0);
-      assertEquals(blobStore.list(containerName).size(),0);
-      Blob blob = blobStore.blobBuilder(inFile.getName()).payload(inFile).userMetadata(userMetadata).build();
-      
-      System.out.println("blob: before put "+blob);
- 
-      blobStore.putBlob(containerName, blob);
-      assertEquals(blobStore.blobExists(containerName, inFile.getName()),true);
-      assertEquals(blobStore.countBlobs(containerName),1);
-      assertEquals(blobStore.list(containerName).size(),1);
-      blob = blobStore.getBlob(containerName, inFile.getName());      
-      System.out.println("blob: after put "+blob);
-      System.out.println("blob payload: after put "+blob.getPayload());
-      System.out.println("blob metadata: after put "+blob.getMetadata());
-      System.out.println("blobStore.blobMetadata: after put "+blobStore.blobMetadata(containerName, inFile.getName()));
-      System.out.println("blobStore.blobMetadata.getContentMetadata(): after put "+blobStore.blobMetadata(containerName, inFile.getName()).getContentMetadata().toString());
-      Payload payloadOut = blob.getPayload();
-      validateDataObjectPayload(inFile,payloadOut);
-      
-      //payloadOut.getInput().
-      blobStore.removeBlob(containerName, inFile.getName());
-      assertEquals(blobStore.blobExists(containerName, inFile.getName()),false);
-      assertEquals(blobStore.countBlobs(containerName),0);
-      assertEquals(blobStore.list(containerName).isEmpty(),true);      
-      logger.info("delete: " + containerName);
-      blobStore.deleteContainer(containerName);
-      assertEquals(blobStore.containerExists(containerName),false);
-      assertEquals(blobStore.countBlobs("/"),--rootBlobCount);
-      
-      /*
-      containerName = "MyContainerNoSlash";
-      logger.info("create: " + containerName);
-      assertEquals(blobStore.createContainerInLocation(null,containerName),true);
-      assertEquals(blobStore.containerExists(containerName),true);
-      for(StorageMetadata md: blobStore.list() ) {
-      	System.out.println("md: "+md);      	
-      }
-      
-      logger.info("delete: " + containerName);
-      blobStore.deleteContainer(containerName);
-      */
-  
-      /*
       try {
-         logger.info(container.toString());
-         logger.info("exists: "+api.containerExists(containerName));
-         assertEquals(container.getObjectType(), ObjectTypes.CONTAINER);
-         assertNotNull(container.getObjectID());
-         assertNotNull(container.getObjectName());
-         assertNotNull(container.getUserMetadata());
-         Map<String, String> pContainerMetaDataOut = container.getUserMetadata();
-         keys = userMetaDataIn.keySet().iterator();
-         while (keys.hasNext()) {
-            String key = keys.next();
-            assertEquals(pContainerMetaDataOut.containsKey(key), true);
-            assertEquals(pContainerMetaDataOut.get(key), userMetaDataIn.get(key));
+         assertEquals(blobStore.containerExists(containerName),true);
+         assertEquals(blobStore.countBlobs("/"),++rootBlobCount);
+         assertEquals(blobStore.list().size(),rootBlobCount);
+ //         File inFile = new File(System.getProperty("user.dir") + "/src/test/resources/yellow-flowers.jpg");
+         File inFile = new File(System.getProperty("user.dir") + "/src/test/resources/container.json");
+         assertEquals(true, inFile.isFile());
+         assertEquals(blobStore.blobExists(containerName, inFile.getName()),false);
+         assertEquals(blobStore.countBlobs(containerName),0);
+         assertEquals(blobStore.list(containerName).size(),0);
+         blob = blobStore.blobBuilder(inFile.getName()).payload(inFile).userMetadata(userMetadata).build();
+         assertNotNull(blobStore.putBlob(containerName, blob));
+         assertEquals(blobStore.blobExists(containerName, inFile.getName()),true);
+         assertEquals(blobStore.countBlobs(containerName),1);
+         assertEquals(blobStore.list(containerName).size(),1);
+         blob = blobStore.getBlob(containerName, inFile.getName());      
+         validate(inFile,blob);
+         validate(userMetadata,blob);
+         assertEquals(blobStore.blobMetadata(containerName, inFile.getName()).getName(),inFile.getName());
+         assertEquals(blobStore.blobMetadata(containerName, inFile.getName()).getContainer(),containerName);         
+         blobStore.removeBlob(containerName, inFile.getName());
+         assertEquals(blobStore.blobExists(containerName, inFile.getName()),false);
+         assertEquals(blobStore.countBlobs(containerName),0);
+         assertEquals(blobStore.list(containerName).isEmpty(),true); 
+         for(int i=0;i<5;i++) {
+         	assertNotNull(blobStore.putBlob(containerName, blobStore.blobBuilder(inFile.getName()+"_"+i).payload(inFile).build()));
+         	assertEquals(blobStore.countBlobs(containerName),i+1);
          }
-         logger.info("UserMetaData: " + container.getUserMetadata());
-         assertNotNull(container.getSystemMetadata());
-         logger.info("SystemMetaData: " + container.getSystemMetadata());
-         assertNotNull(container.getACLMetadata());
-         List<Map<String, String>> aclMetadataOut = container.getACLMetadata();
-         logger.info("ACLMetaData: ");
-         for (Map<String, String> aclMap : aclMetadataOut) {
-            logger.info(aclMap.toString());
-         }
-         container = api.get("/");
-         assertNotNull(container);
-         logger.info("root container: " + container);
-         assertEquals(container.getChildren().contains(containerName), true);
-         logger.info("exists: "+api.containerExists(containerName));
-
-      } finally {
-         logger.info("deleteContainer: " + containerName);
-         for (String containerChild : api.get(containerName).getChildren()) {
-            logger.info("Deleting " + containerChild);
-            api.delete(containerChild);
-         }
-         api.delete(containerName);
-         container = api.get("/");
-         logger.info("root container: " + container.toString());
-         assertEquals(container.getChildren().contains(containerName), false);
-         //logger.info("exists: "+api.containerExists(containerName));
+         assertEquals(blobStore.createContainerInLocation(null,containerName+"childContainer/"),true); 
+         assertEquals(blobStore.countBlobs(containerName),6);
+         assertNotNull(blobStore.putBlob(containerName+"childContainer/", blobStore.blobBuilder(inFile.getName()).payload(inFile).build()));
+         assertEquals(blobStore.countBlobs(containerName),6);
+         blobStore.clearContainer(containerName);
+         assertEquals(blobStore.containerExists(containerName),true);
+         assertEquals(blobStore.countBlobs(containerName),0);
+      } 
+      finally {
+      	logger.info("delete: " + containerName);
+      	blobStore.deleteContainer(containerName);
+      	assertEquals(blobStore.containerExists(containerName),false);
+      	assertEquals(blobStore.countBlobs("/"),--rootBlobCount);
       }
-      */
-
    }
-   private void validateDataObjectPayload(File fileIn, Payload payloadOut) throws IOException {
+      
+      @Test
+      public void testASyncBlobStore() throws Exception {
+         String containerName = "MyContainer" + System.currentTimeMillis() + "/";
+         Iterator<String> keys;
+         Properties overrides = super.setupProperties();
+         overrides.setProperty(CDMIProperties.AUTHTYPE, AuthTypes.OPENSTACKKEYSTONE_AUTHTYPE);
+         overrides.setProperty(Constants.PROPERTY_ENDPOINT,endpoint); 
+         System.out.println(overrides);
+         BlobStoreContext blobStoreContext = ContextBuilder.newBuilder(provider).credentials(identity, credential).overrides(overrides).buildView(BlobStoreContext.class);
+         AsyncBlobStore asyncBlobStore = blobStoreContext.getAsyncBlobStore();
+         BlobStore blobStore = blobStoreContext.getBlobStore();
+         long rootBlobCount = asyncBlobStore.countBlobs("/").get();
+         assertEquals(asyncBlobStore.list().get().size(),rootBlobCount);
+         try {
+         	assertEquals(asyncBlobStore.containerExists(containerName).get(),Boolean.valueOf(false)); 
+         	logger.info("create: " + containerName);
+            assertEquals(asyncBlobStore.createContainerInLocation(null,containerName).get(),Boolean.valueOf(true)); 
+            assertEquals(asyncBlobStore.containerExists(containerName).get(),Boolean.valueOf(true));            
+            assertEquals(asyncBlobStore.countBlobs("/").get(),Long.valueOf(++rootBlobCount));
+            assertEquals(asyncBlobStore.list().get().size(),rootBlobCount);
+    //         File inFile = new File(System.getProperty("user.dir") + "/src/test/resources/yellow-flowers.jpg");
+            File inFile = new File(System.getProperty("user.dir") + "/src/test/resources/container.json");
+            assertEquals(true, inFile.isFile());
+            assertEquals(asyncBlobStore.blobExists(containerName, inFile.getName()).get(),Boolean.valueOf(false));
+            assertEquals(asyncBlobStore.countBlobs(containerName).get(),Long.valueOf(0));
+            assertEquals(asyncBlobStore.list(containerName).get().size(),0);
+            Blob blob = blobStore.blobBuilder(inFile.getName()).payload(inFile).userMetadata(userMetadata).build();
+            assertNotNull(asyncBlobStore.putBlob(containerName, blob).get());
+            assertEquals(asyncBlobStore.blobExists(containerName, inFile.getName()).get(),Boolean.valueOf(true));
+            assertEquals(asyncBlobStore.countBlobs(containerName).get(),Long.valueOf(1));
+            assertEquals(asyncBlobStore.list(containerName).get().size(),1);
+            blob = asyncBlobStore.getBlob(containerName, inFile.getName()).get();      
+            System.out.println("blobStore.blobMetadata.getContentMetadata(): after put "+asyncBlobStore.blobMetadata(containerName, inFile.getName()).get().getContentMetadata().toString());
+            validate(inFile,blob);
+            validate(userMetadata,blob);
+            assertEquals(asyncBlobStore.blobMetadata(containerName, inFile.getName()).get().getName(),inFile.getName());
+            assertEquals(asyncBlobStore.blobMetadata(containerName, inFile.getName()).get().getContainer(),containerName);
+            asyncBlobStore.removeBlob(containerName, inFile.getName()).get();
+            assertEquals(asyncBlobStore.blobExists(containerName, inFile.getName()).get(),Boolean.valueOf(false));
+            assertEquals(asyncBlobStore.countBlobs(containerName).get(),Long.valueOf(0));
+            assertEquals(blobStore.list(containerName).isEmpty(),true);
+            for(int i=0;i<5;i++) {
+            	assertNotNull(blobStore.putBlob(containerName, blobStore.blobBuilder(inFile.getName()+"_"+i).payload(inFile).build()));
+            	assertEquals(blobStore.countBlobs(containerName),i+1);
+            }
+            //assertEquals(blobStore.createContainerInLocation(null,containerName+"childContainer/"),true); 
+            //assertEquals(asyncBlobStore.countBlobs(containerName).get(),Long.valueOf(6));
+            //assertNotNull(blobStore.putBlob(containerName+"childContainer/", blobStore.blobBuilder(inFile.getName()).payload(inFile).build()));
+            //assertEquals(asyncBlobStore.countBlobs(containerName).get(),Long.valueOf(6));
+            asyncBlobStore.clearContainer(containerName).get();
+            assertEquals(asyncBlobStore.containerExists(containerName).get(),Boolean.valueOf(true));
+            assertEquals(asyncBlobStore.countBlobs(containerName).get(),Long.valueOf(0));            
+         } 
+         finally {         	
+         	logger.info("delete: " + containerName);
+         	asyncBlobStore.deleteContainer(containerName).get();
+         	assertEquals(asyncBlobStore.containerExists(containerName).get(),Boolean.valueOf(false)); 
+         	assertEquals(asyncBlobStore.countBlobs("/").get(),Long.valueOf(--rootBlobCount)); 
+         }
+      }
+
+   private void validate(File fileIn, Blob blob) throws IOException {
+   	Payload payload = blob.getPayload();
    	File tempDir = Files.createTempDir();   	
       File fileOut = new File(tempDir, fileIn.getName());
       FileOutputStream fos = new FileOutputStream(fileOut);
-      ByteStreams.copy(payloadOut.getInput(), fos);
+      ByteStreams.copy(payload.getInput(), fos);
       fos.flush();
       fos.close();
       assertEquals(Files.equal(fileOut, fileIn), true);
       fileOut.delete();
       tempDir.delete();
 
+   }
+   private void validate(Map<String, String> in, Blob blob) {
+   	Iterator<String> keys = in.keySet().iterator();
+   	Map<String, String> out = blob.getMetadata().getUserMetadata();   	
+      while (keys.hasNext()) {
+         String key = keys.next();
+         assertEquals(out.containsKey(key), true);
+         assertEquals(out.get(key), in.get(key));
+      }
+   	
    }
 
 

@@ -110,6 +110,7 @@ public interface DataApi {
    DataObject create(String dataObjectName, CreateDataObjectOptions... options);
    
    DataObject create(String dataObjectName, MultipartMimePayloadIn payload);
+   String putObject(String dataObjectName, CreateDataObjectOptions... options);
    BasePayload getMultipartMime(String dataObjectName);
  
 

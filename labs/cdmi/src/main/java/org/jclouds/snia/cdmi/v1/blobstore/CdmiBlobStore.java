@@ -1,5 +1,7 @@
 package org.jclouds.snia.cdmi.v1.blobstore;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -38,6 +40,8 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
+import com.google.common.io.CharStreams;
+import com.google.common.io.InputSupplier;
 import com.google.common.base.Charsets;
 
 import javax.inject.Inject;
@@ -63,7 +67,6 @@ public class CdmiBlobStore extends BaseBlobStore{
 
 	@Override
    public PageSet<? extends StorageMetadata> list() {
-		System.out.println("list() entered");
 	   return list("/");
    }
 	@Override
@@ -88,18 +91,7 @@ public class CdmiBlobStore extends BaseBlobStore{
 
 	@Override
    public boolean containerExists(String container) {
-		boolean result = true;
-	   try {
-	   	Container containerOut = containerApi.get(container);
-	   	if(containerOut==null) {
-	   		System.out.println("container is null");
-	   		result = false;
-	   	}
-	   } catch(Exception e) {
-	   	System.out.println("containerExists: "+e);
-	   	result = false;	   	
-	   }
-	   return result;
+	   return containerApi.containerExists(container);
    }
 
 	@Override
@@ -150,19 +142,28 @@ public class CdmiBlobStore extends BaseBlobStore{
 
 	@Override
    public String putBlob(String container, Blob blob) {
-		// TODO to add update of metadata better yet support multipart
-		//dataNonCDMIContentTypeApi.create(container+blob.getMetadata().getName(), blob.getPayload());
 	   return putBlob(container,blob,null);
    }
 
 	@Override
    public String putBlob(String container, Blob blob, PutOptions options) {
-	   // TODO add support for putoptions
+	   // TODO add support for put options
 		System.out.println("putBlob("+container+","+blob+","+options+")");
 		System.out.println("putBlob metadata: "+blob.getMetadata().getUserMetadata());
-		dataApi.create(container+blob.getMetadata().getName(), CreateDataObjectOptions.Builder.metadata(blob.getMetadata().getUserMetadata()));
-		dataNonCDMIContentTypeApi.create(container+blob.getMetadata().getName(), blob.getPayload());
-	   return null;
+		String etag = "";
+		// TODO replace below with multipart mime put when openstack provides support
+		if(blob.getMetadata().getUserMetadata().isEmpty()) {
+			etag = dataNonCDMIContentTypeApi.create(container+blob.getMetadata().getName(), blob.getPayload());
+		} else {
+			try {
+		      //dataApi.create(container+blob.getMetadata().getName(), CreateDataObjectOptions.Builder.metadata(blob.getMetadata().getUserMetadata()).value(blob.getPayload().getInput()));
+		      etag = dataApi.putObject(container+blob.getMetadata().getName(), CreateDataObjectOptions.Builder.metadata(blob.getMetadata().getUserMetadata()).value(blob.getPayload().getInput()));
+	      } catch (IOException e) {
+		      // TODO Auto-generated catch block
+		      e.printStackTrace();
+	      }
+		}
+	   return etag;
    }
 
 	@Override
@@ -177,9 +178,7 @@ public class CdmiBlobStore extends BaseBlobStore{
 		Blob blob = null;
 		try{
 			Payload payload = dataNonCDMIContentTypeApi.getPayload(containerName+objectName);
-			DataObject dataObject = dataApi.get(containerName+objectName, DataObjectQueryParams.Builder.metadata());
-			dataObject = dataApi.get(containerName+objectName);
-			System.out.println("getBlob: "+dataObject);
+			DataObject dataObject = dataApi.get(containerName+objectName);
 			blob = cdmiObjectToBlobstore.getBlob(containerName, dataObject, payload);			
 		}
 		catch (Exception e){
@@ -194,24 +193,45 @@ public class CdmiBlobStore extends BaseBlobStore{
    }
 	
 	@Override
-	public void deleteContainer(String container) {
-		System.out.println("delete("+container+")"+" entered");
-		containerApi.delete(container);		
+	public void clearContainer(String containerName) { 
+		String parent = containerName;
+		Container container =  containerApi.get(containerName, ContainerQueryParams.Builder.children());
+		if(container != null) {
+			if (containerName.matches("/")) {
+				parent = "";
+			}
+			for(String child: container.getChildren()) {
+				deleteCDMIObject(parent + child);				
+			}
+		}		
 	}
 
 	@Override
+	public void deleteContainer(String containerName) {
+		clearContainer(containerName);
+		containerApi.delete(containerName);		
+	}	
+	private void deleteCDMIObject(String objectName) {
+		if (objectName.endsWith("/")) {
+			deleteContainer(objectName);
+		} else {
+			deleteDataObject(objectName);
+		}
+		return;
+	}
+	
+	private void deleteDataObject(String objectName) {
+		dataApi.delete(objectName);		
+	}
+
+
+
+	@Override
    protected boolean deleteAndVerifyContainerGone(String container) {
-		System.out.println("deleteAndVerifyContainerGone entered");
-		boolean result = true;
-	   try {
-	   	containerApi.delete(container);
-	   	result = containerApi.containerExists(container);
-	   } catch(Exception e) {
-	   	System.out.println("deleteAndVerifyContainerGone: "+e);
-	   	result = false;	   	
-	   }
-	   return result;
+		deleteContainer(container);
+	   return !containerExists(container);
    }
+	
 	@Override
 	public long countBlobs(String containerName, ListContainerOptions options) {
 		long result = 0;

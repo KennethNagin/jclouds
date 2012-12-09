@@ -32,6 +32,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.Encoded;
 
 
+import org.jclouds.snia.cdmi.v1.functions.ParseETagHeader;
 import org.jclouds.io.Payload;
 import org.jclouds.io.payloads.BasePayload;
 import org.jclouds.rest.annotations.BinderParam;
@@ -97,13 +98,22 @@ public interface DataAsyncApi {
    ListenableFuture<DataObject> create(@PathParam("dataObjectName") String dataObjectName,
             CreateDataObjectOptions... options);
    
- 
    @PUT
    @Consumes({ ObjectTypes.DATAOBJECT, MediaType.APPLICATION_JSON })
    @Produces({ MultipartMimeParts.MULTIPARTMIXED })
    @ExceptionParser(ReturnNullOnNotFoundOr404.class)
    @Path("/{dataObjectName}")
    ListenableFuture<DataObject> create(@PathParam("dataObjectName") String dataObjectName, MultipartMimePayloadIn payload);
+   
+   @PUT
+   @Consumes({ ObjectTypes.DATAOBJECT, MediaType.APPLICATION_JSON })
+   @Produces({ ObjectTypes.DATAOBJECT })
+   @ResponseParser(ParseETagHeader.class)
+   @ExceptionParser(ReturnNullOnNotFoundOr404.class)
+   @Path("/{dataObjectName}")
+   ListenableFuture<String> putObject(@PathParam("dataObjectName") String dataObjectName,
+            CreateDataObjectOptions... options);
+
   
    
    @GET

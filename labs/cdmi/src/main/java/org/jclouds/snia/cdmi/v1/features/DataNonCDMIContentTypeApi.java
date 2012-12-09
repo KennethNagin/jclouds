@@ -152,7 +152,7 @@ public interface DataNonCDMIContentTypeApi {
     * 
     *           <pre>
     */
-   void create(String dataObject, Payload payload);
+   String create(String dataObject, Payload payload);
 
    /**
     * create CDMI Data object partial Non CDMI Content Type Only part of the object is contained in the payload and the
